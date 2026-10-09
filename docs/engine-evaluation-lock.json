@@ -1,0 +1,39 @@
+{
+  "baseline": "GS-v1",
+  "approved_ghostscript_version": "10.08.0",
+  "go": "1.27.2",
+  "qpdf": "12.4.2",
+  "apt_snapshot": "20261008T000000Z",
+  "architecture": "linux/amd64",
+  "images": {
+    "pdf-engine-stage01:qa": "sha256:470b1f7fd0b1ed646b03efc0038685c3fcb215e6acca3f13447e0a7d1eb60201",
+    "pdf-engine-stage01:probe": "sha256:10406857708d21d3e0f3115c7cde231edbe16e7506474b448fa1fe3246eda6f4"
+  },
+  "binary_and_source_sha256": {
+    "/opt/pdf-tools/bin/gs": "7c737616dcc36020a157c060ab7960dbc8d48ac8bdac204245e49deb5dfa867d",
+    "/opt/pdf-tools/bin/qpdf": "c02cf13cce6e012b74fe5a94d023891b7eeed7722eff274da6723fdccc803f20",
+    "/usr/local/bin/engine-probe": "4ce5cc8d8b80a873416b48441c450021f33e9e0edf521874d453a10ed40da1e9",
+    "/opt/pdf-tools/share/doc/sources/gs.tar.xz": "c20492bc8ebb96c87fa2e52a0926e1cda8cde95d66145e018ac713fed5da38cf",
+    "/opt/pdf-tools/share/doc/sources/qpdf.tar.gz": "8a58af5b6141319287c1883bec8bd1bd545b7567b7fc5e6ce5d25a1c85f36397"
+  },
+  "runtime_library_sha256": {
+    "/lib/x86_64-linux-gnu/libbrotlicommon.so.1": "a91ead095d2c80520c55a89057bbe10b031a075340442e63f44b310f93883a1b",
+    "/lib/x86_64-linux-gnu/libbrotlidec.so.1": "64d8a5019d4c294b89fde1193343ea324bbd8603652554e5545f0a01595fa2c5",
+    "/lib/x86_64-linux-gnu/libbz2.so.1.0": "cc08c9f50a8009ffd6391e0116a100369b11ca9238fa52392c019e6645b122a1",
+    "/lib/x86_64-linux-gnu/libc.so.6": "3a15d66867d83762c7f2f1e37359cb8f6c5743edb369c65285cb0b1c4f7498bf",
+    "/lib/x86_64-linux-gnu/libcrypto.so.3": "6866ed711dab8927e1bf82bf1cd30e828bdfc34f3cc1e83b1c9eb01ce6c37d9a",
+    "/lib/x86_64-linux-gnu/libexpat.so.1": "286682ecbc5e59a638963b1a4e6351e65eb32fcf4bdcb9cb7569b6a61fe06a8d",
+    "/lib/x86_64-linux-gnu/libfontconfig.so.1": "a94b4059b27766f563894c8f7e61762b6f6b2e25c59ef36b730164d4b75c6c98",
+    "/lib/x86_64-linux-gnu/libfreetype.so.6": "992dac80abe3a3854f3eb2668da4207c029664ceca5f122ddb46e2a8169e9499",
+    "/lib/x86_64-linux-gnu/libgcc_s.so.1": "d93224d2b0dab4247598be683adca02f5cf00586f99c187579cd7e92058fb7cb",
+    "/lib/x86_64-linux-gnu/libjpeg.so.8": "ac09f2cd6f8a3b8e3cb123999ce275f9bcbe31c6cf9e20212c8f297772591d15",
+    "/lib/x86_64-linux-gnu/libm.so.6": "fce00b6f25f459cf4ae0b7fae4257909a1a8a86f9149e7c029a5d617baf1ccd0",
+    "/lib/x86_64-linux-gnu/libpng16.so.16": "89c0c6569a8c00480d451401ad4c0a74942e62dc57f229a970592fdc5adb29e8",
+    "/lib/x86_64-linux-gnu/libstdc++.so.6": "1fd75fe70354a416d75aef22bcae68c47bd25d20e2d0568c30b1a9838cf62f11",
+    "/lib/x86_64-linux-gnu/libz.so.1": "86200da370f20476a2507e9097a789b5ef97269b4ca8d5e164ad82dab9d99892",
+    "/lib64/ld-linux-x86-64.so.2": "c20a2dc8917c755f02b94049356320fe1f62ac7d9f8994731f807d9df39302da",
+    "/opt/pdf-tools/lib/libqpdf.so.30": "bf778c4b23bc8ba01213ab7ea3f997fa5c644631623e9e19db5946004bc748fc"
+  },
+  "fixture_manifest": "testdata/pdf/manifest.json",
+  "evidence": "artifacts/stage-01/verified-qa/report.json"
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "file": "catalog-aa.pdf",
+    "sha256": "8008bbbd067d92fd10a5f117ce52aa9844c4a371111134688d8f135437d2b22f",
+    "http_status": 422,
+    "code": "special_type_javascript"
+  },
+  {
+    "file": "page-aa.pdf",
+    "sha256": "33562e56aedafa8802763f846672593a7a91b7eb8c6579e5704ea43a10f0cc51",
+    "http_status": 422,
+    "code": "special_type_javascript"
+  },
+  {
+    "file": "link-aa.pdf",
+    "sha256": "1a0dc158e63bf01113313ec9e938e6eb10b3018da40416873ae57a7e48f14918",
+    "http_status": 422,
+    "code": "special_type_javascript"
+  },
+  {
+    "file": "next-dictionary.pdf",
+    "sha256": "36177ff8dae9fc55dd178afff9c69bcda1f768f0a44a69cf61ecd0ed9574a9e1",
+    "http_status": 422,
+    "code": "special_type_javascript"
+  },
+  {
+    "file": "next-array-launch.pdf",
+    "sha256": "f631c5d19500824769d64d9fa3fa6440bcc8bd42be95145c0ded527c1bccbc05",
+    "http_status": 422,
+    "code": "special_type_javascript"
+  },
+  {
+    "file": "indirect-aa.pdf",
+    "sha256": "6942c4ed20bd7872aa2500d72884ae6066d1aabbe3dc6e715dae70594ebb1eea",
+    "http_status": 422,
+    "code": "special_type_javascript"
+  },
+  {
+    "file": "clean-uri.pdf",
+    "sha256": "c83013b579b19e48c423286422c3f19c425638484ce88109a69f2c87fb4d7da1",
+    "http_status": 200,
+    "code": ""
+  },
+  {
+    "file": "clean-goto.pdf",
+    "sha256": "caedb69e693c7c5d930f692709f45956887a807dc2441e63277691b4d4f9414c",
+    "http_status": 200,
+    "code": ""
+  }
+]

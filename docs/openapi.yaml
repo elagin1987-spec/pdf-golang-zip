@@ -1,0 +1,109 @@
+openapi: 3.0.3
+info:
+  title: Internal PDF Compression API
+  version: GS-v1
+  description: Local synchronous processing without authentication. Maximum two requests; no queue.
+servers:
+  - url: http://127.0.0.1:8080
+paths:
+  /healthz:
+    get:
+      responses:
+        '200':
+          description: Process alive
+  /readyz:
+    get:
+      responses:
+        '200':
+          description: Pinned qpdf 12.4.2 and gs 10.08.0 available; worker and writable storage. With ENABLE_LOSSY=false only qpdf required.
+        '503':
+          $ref: '#/components/responses/Error'
+  /v1/compress:
+    post:
+      description: Streaming multipart; exactly one file, optional profile in any order. Duplicate and unknown fields rejected. File <=50 MiB, body <=51 MiB, text field <=1024 bytes. Processing timeout starts after upload. Disconnect cancels job. Binary starts after validation.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF; extension and MIME ignored. Empty rejected.
+                profile:
+                  type: string
+                  enum: [balanced, compact, lossless]
+                  default: balanced
+      responses:
+        '200':
+          description: Valid PDF no larger than original. unchanged preserves exact original bytes; fallback warnings possible.
+          headers:
+            Content-Disposition:
+              schema: {type: string, example: 'attachment; filename="compressed.pdf"'}
+            Cache-Control:
+              schema: {type: string, example: no-store}
+            X-Request-ID:
+              schema: {type: string}
+            X-Compression-Status:
+              schema: {type: string, enum: [compressed, unchanged]}
+            X-Optimization-Engine:
+              schema: {type: string, enum: [original, qpdf, ghostscript]}
+            X-Original-Bytes:
+              schema: {type: integer, format: int64}
+            X-Output-Bytes:
+              schema: {type: integer, format: int64}
+            X-Saved-Percent:
+              schema: {type: string, example: '25.00'}
+            X-Compression-Warnings:
+              description: Unique comma-separated machine codes, <=1024 bytes; empty if none.
+              schema: {type: string}
+            X-Input-Image-Objects:
+              description: Unique reachable image XObjects, excluding inline images and placement counts.
+              schema: {type: integer}
+            X-Output-Image-Objects:
+              description: Same inventory meaning; does not count actual optimizations.
+              schema: {type: integer}
+          content:
+            application/pdf:
+              schema: {type: string, format: binary}
+        '400':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+        '503':
+          description: Busy (Retry-After 1) or tool unavailable. Admission before body read, no queue.
+          headers:
+            Retry-After:
+              schema: {type: string, example: '1'}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '504':
+          $ref: '#/components/responses/Error'
+components:
+  schemas:
+    Error:
+      type: object
+      required: [code, message, request_id]
+      properties:
+        code: {type: string}
+        message: {type: string, description: Safe generic message without tool stderr or PDF content.}
+        request_id: {type: string}
+  responses:
+    Error:
+      description: 400 multipart/profile (including profile_disabled), 413 bytes, 415 non-PDF, 422 invalid/special/document limits, 500 storage/required validation, 503 unavailable, 504 processing timeout.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

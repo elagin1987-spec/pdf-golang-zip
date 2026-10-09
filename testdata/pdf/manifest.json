@@ -1,0 +1,74 @@
+[
+  {
+    "file": "jpeg-600dpi.pdf",
+    "width": 1200,
+    "height": 1200,
+    "dpi": 600,
+    "filter": "DCTDecode",
+    "bits": 8,
+    "sha256": "684e76a21ef3f693fdcd98a738245806cb2d1caefaebe8bad93f042f8c3eb272"
+  },
+  {
+    "file": "flate-rgb-600dpi.pdf",
+    "width": 1200,
+    "height": 1200,
+    "dpi": 600,
+    "filter": "FlateDecode",
+    "bits": 8,
+    "sha256": "7cf7486c0b23b59a1c1dc52230184fbcc4ecc48fb12c04dae1eb6698a03658de"
+  },
+  {
+    "file": "jpeg-150dpi.pdf",
+    "width": 300,
+    "height": 300,
+    "dpi": 150,
+    "filter": "DCTDecode",
+    "bits": 8,
+    "sha256": "b6c1f31e769f39b627f66170caa888f6d2adb7f48097e77f3a745cc8cbcf8a9a"
+  },
+  {
+    "file": "flate-rgb-150dpi.pdf",
+    "width": 300,
+    "height": 300,
+    "dpi": 150,
+    "filter": "FlateDecode",
+    "bits": 8,
+    "sha256": "df4a49f80ff9d66709369ea6406ac1188eaf8114c246069a99f1716375a7a788"
+  },
+  {
+    "file": "flate-gray-600dpi.pdf",
+    "width": 1200,
+    "height": 1200,
+    "dpi": 600,
+    "filter": "FlateDecode",
+    "bits": 8,
+    "sha256": "67a5b3800611c692df9512e8f64438b87bd38f12256bf8173e9f339355047409"
+  },
+  {
+    "file": "mono-flate-600dpi.pdf",
+    "width": 1200,
+    "height": 1200,
+    "dpi": 600,
+    "filter": "FlateDecode",
+    "bits": 1,
+    "sha256": "76e4254c145d8f39a55a8d4908b591cfb9bbc0ff229f9a5a429b261de9eeeef2"
+  },
+  {
+    "file": "jbig2-600dpi.pdf",
+    "width": 1200,
+    "height": 1200,
+    "dpi": 600,
+    "filter": "JBIG2Decode",
+    "bits": 1,
+    "sha256": "2f282fe6a5ace8fcec8d8941227c9765e57d79ec13b72935981f167be6f8d759"
+  },
+  {
+    "file": "jpx-600dpi.pdf",
+    "width": 1200,
+    "height": 1200,
+    "dpi": 600,
+    "filter": "JPXDecode",
+    "bits": 8,
+    "sha256": "4c557f9e809f5fc69ea86740a0b58f87350fbbc45f7620f31a4574d613bc15e3"
+  }
+]
