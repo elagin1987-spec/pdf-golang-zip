@@ -17,6 +17,7 @@ func TestParseProfile(t *testing.T) {
 		{input: "balanced", expected: ProfileBalanced, err: nil},
 		{input: "BALANCED", expected: ProfileBalanced, err: nil},
 		{input: "  compact  ", expected: ProfileCompact, err: nil},
+		{input: "auto", expected: ProfileAuto, err: nil},
 		{input: "lossless", expected: ProfileLossless, err: nil},
 		{input: "LOSSLESS", expected: ProfileLossless, err: nil},
 		{input: "screen", expected: "", err: ErrUnknownProfile},

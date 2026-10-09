@@ -142,6 +142,8 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request, job *storage.Job
 				return "", &APIError{400, "field_too_large"}
 			}
 			switch string(val) {
+			case "auto":
+				profile = compression.ProfileAuto
 			case "balanced":
 				profile = compression.ProfileBalanced
 			case "compact":

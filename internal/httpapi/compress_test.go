@@ -88,6 +88,7 @@ func TestMultipartContract(t *testing.T) {
 		code   string
 	}{
 		{"file first", []field{{"file", pdf, true}, {"profile", "lossless", false}}, 200, ""},
+		{"auto profile", []field{{"profile", "auto", false}, {"file", pdf, true}}, 200, ""},
 		{"profile first", []field{{"profile", "compact", false}, {"file", pdf, true}}, 200, ""},
 		{"default", []field{{"file", pdf, true}}, 200, ""},
 		{"duplicate file", []field{{"file", pdf, true}, {"file", pdf, true}}, 400, "invalid_fields"},
@@ -248,5 +249,25 @@ func TestTimeoutCancelShutdownAndErrors(t *testing.T) {
 	s.Handler().ServeHTTP(w, httptest.NewRequest("GET", "/readyz", nil))
 	if w.Code != 503 || strings.Contains(w.Body.String(), "private stderr") {
 		t.Fatal(w.Body)
+	}
+}
+
+func TestAutoProfileForwardedAndDisabled(t *testing.T) {
+	for _, enabled := range []bool{true, false} {
+		s, _ := setup(t, processFunc(func(ctx context.Context, j *storage.Job, p compression.Profile) (*compression.Result, error) {
+			if !enabled || p != compression.ProfileAuto {
+				t.Fatal("auto forwarding/gate", p)
+			}
+			return original(ctx, j, p)
+		}))
+		s.Config.EnableLossy = enabled
+		w := httptest.NewRecorder()
+		s.Handler().ServeHTTP(w, request(t, field{"file", "%PDF-1.7 test", true}, field{"profile", "auto", false}))
+		if enabled && w.Code != 200 {
+			t.Fatal(w.Code, w.Body)
+		}
+		if !enabled && (w.Code != 400 || !strings.Contains(w.Body.String(), "profile_disabled")) {
+			t.Fatal(w.Code, w.Body)
+		}
 	}
 }

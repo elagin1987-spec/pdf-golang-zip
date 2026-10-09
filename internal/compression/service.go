@@ -41,6 +41,7 @@ type CompressRequest struct {
 	Profile           Profile
 	MaxPages          int
 	AllowSpecialTypes bool
+	Auto              *AutoSettings
 }
 
 // Service coordinates the PDF compression pipeline and candidate selection.
@@ -59,7 +60,7 @@ func NewService(qpdf_client *qpdf.Client, gs_client *ghostscript.Client) *Servic
 
 // Compress executes the end-to-end compression pipeline:
 // 1. Preflight integrity and policy/inventory analysis.
-// 2. QPDF lossless candidate generation.
+// 2. QPDF lossless candidate generation and optional auto JPEG candidate.
 // 3. Ghostscript rewrite and structural candidates (if eligible and requested).
 // 4. Candidate validation and selection of the smallest valid result or original fallback.
 func (s *Service) Compress(ctx context.Context, req CompressRequest) (*Result, error) {
@@ -85,6 +86,16 @@ func (s *Service) Compress(ctx context.Context, req CompressRequest) (*Result, e
 	profile, err := ParseProfile(string(req.Profile))
 	if err != nil {
 		return nil, err
+	}
+
+	auto := DefaultAutoSettings()
+	if req.Auto != nil {
+		auto = *req.Auto
+	}
+	if profile == ProfileAuto {
+		if err := auto.Validate(); err != nil {
+			return nil, err
+		}
 	}
 
 	warnings := make([]string, 0)
@@ -180,16 +191,52 @@ func (s *Service) Compress(ctx context.Context, req CompressRequest) (*Result, e
 		}
 	}
 
-	// 4. Ghostscript lossy candidates (only for balanced/compact and when eligible)
-	if profile != ProfileLossless && orig_analysis.IsEligibleForGS() {
+	// Auto's JPEG candidate is optional: keep the validated lossless fallback.
+	run_gs := profile != ProfileLossless && orig_analysis.IsEligibleForGS()
+	if profile == ProfileAuto && orig_analysis.IsEligibleForGS() {
+		image_path := filepath.Join(req.WorkDir, "qpdf-images.pdf")
+		image_err := s.qpdf_client.WriteImages(ctx, req.InputPath, image_path, auto.JPEGQuality)
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if image_err != nil {
+			warnings = append(warnings, "qpdf_images_failed")
+		} else {
+			val, err := ValidateCandidate(ctx, s.qpdf_client, s.gs_client, orig_analysis, "", image_path, EngineQPDF, req.WorkDir)
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			if err != nil {
+				return nil, err
+			}
+			if val != nil && val.Valid && val.Candidate != nil {
+				candidates = append(candidates, val.Candidate)
+			} else {
+				warnings = append(warnings, "qpdf_images_invalid")
+			}
+		}
+		// Compare validated QPDF candidates with the original, without rounding.
+		for _, cand := range candidates {
+			if cand.Size < original_bytes && float64(original_bytes-cand.Size)*100 >= float64(original_bytes)*float64(auto.MinSavedPercent) {
+				run_gs = false
+			}
+		}
+	}
+
+	// 4. Ghostscript lossy candidates (eligible balanced/compact or auto fallback)
+	if run_gs {
 		gs_profile, profile_err := profile.ToGSProfile()
 		if profile_err == nil {
 			gs_cand_path := filepath.Join(req.WorkDir, "gs-candidate.pdf")
+			gs_options := ghostscript.RewriteOptions{Profile: gs_profile}
+			if profile == ProfileAuto {
+				gs_options.Resolution = auto.DPI
+			}
 			diag, rw_err := s.gs_client.Rewrite(
 				ctx,
 				req.InputPath,
 				gs_cand_path,
-				ghostscript.RewriteOptions{Profile: gs_profile},
+				gs_options,
 			)
 			if ctx.Err() != nil {
 				return nil, ctx.Err()

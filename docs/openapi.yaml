@@ -36,7 +36,8 @@ paths:
                   description: PDF; extension and MIME ignored. Empty rejected.
                 profile:
                   type: string
-                  enum: [balanced, compact, lossless]
+                  enum: [auto, balanced, compact, lossless]
+                  description: auto tries JPEG optimization then conditional Ghostscript at configured 150 or 200 DPI; settings are server-controlled.
                   default: balanced
       responses:
         '200':

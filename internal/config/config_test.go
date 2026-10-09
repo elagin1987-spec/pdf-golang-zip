@@ -43,3 +43,21 @@ func TestPageLimitBound(t *testing.T) {
 		}
 	}
 }
+
+func TestAutoEnvironment(t *testing.T) {
+	t.Setenv("AUTO_JPEG_QUALITY", "60")
+	t.Setenv("AUTO_MIN_SAVED_PERCENT", "30")
+	t.Setenv("AUTO_DPI", "150")
+	c, err := Load()
+	if err != nil || c.Auto.JPEGQuality != 60 || c.Auto.MinSavedPercent != 30 || c.Auto.DPI != 150 {
+		t.Fatal(c, err)
+	}
+	for _, tc := range []struct{ key, value string }{{"AUTO_JPEG_QUALITY", "101"}, {"AUTO_MIN_SAVED_PERCENT", "-1"}, {"AUTO_DPI", "300"}, {"AUTO_DPI", "bad"}} {
+		t.Run(tc.key+tc.value, func(t *testing.T) {
+			t.Setenv(tc.key, tc.value)
+			if _, err := Load(); err == nil {
+				t.Fatal("invalid setting accepted")
+			}
+		})
+	}
+}

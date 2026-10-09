@@ -152,3 +152,23 @@ func TestBuildArgs(t *testing.T) {
 		}
 	})
 }
+
+func TestAutoResolutionArgs(t *testing.T) {
+	for _, dpi := range []int{150, 200} {
+		args, err := BuildArgsWithResolution(ProfileBalanced, "in.pdf", "out.pdf", dpi)
+		if err != nil {
+			t.Fatal(err)
+		}
+		joined := strings.Join(args, " ")
+		expected := "-dColorImageResolution=200"
+		if dpi == 150 {
+			expected = "-dColorImageResolution=150"
+		}
+		if !strings.Contains(joined, expected) || !strings.Contains(joined, "-dDownsampleMonoImages=false") {
+			t.Fatal(args)
+		}
+	}
+	if _, err := BuildArgsWithResolution(ProfileBalanced, "in", "out", 300); err == nil {
+		t.Fatal("invalid DPI accepted")
+	}
+}

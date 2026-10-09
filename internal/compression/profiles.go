@@ -12,6 +12,9 @@ import (
 type Profile string
 
 const (
+	// ProfileAuto tries JPEG optimization before a conditional Ghostscript rewrite.
+	ProfileAuto Profile = "auto"
+
 	// ProfileBalanced compresses images targeting 300 DPI (standard print/viewing quality).
 	ProfileBalanced Profile = "balanced"
 
@@ -37,6 +40,8 @@ func ParseProfile(raw_name string) (Profile, error) {
 	switch trimmed {
 	case "", string(ProfileBalanced):
 		return ProfileBalanced, nil
+	case string(ProfileAuto):
+		return ProfileAuto, nil
 	case string(ProfileCompact):
 		return ProfileCompact, nil
 	case string(ProfileLossless):
@@ -50,7 +55,7 @@ func ParseProfile(raw_name string) (Profile, error) {
 // ProfileLossless returns an error because lossless compression never invokes Ghostscript.
 func (p Profile) ToGSProfile() (ghostscript.ProfileName, error) {
 	switch p {
-	case ProfileBalanced:
+	case ProfileBalanced, ProfileAuto:
 		return ghostscript.ProfileBalanced, nil
 	case ProfileCompact:
 		return ghostscript.ProfileCompact, nil

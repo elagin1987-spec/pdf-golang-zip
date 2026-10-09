@@ -39,6 +39,9 @@ type RewriteOptions struct {
 	// If Profile is empty and ExtraArgs is empty, ProfileBalanced is used by default.
 	Profile ProfileName
 
+	// Resolution overrides color/gray DPI for auto, limited to 150 or 200.
+	Resolution int
+
 	// ExtraArgs allows passing custom profile arguments. If non-empty, it overrides Profile.
 	ExtraArgs []string
 }
@@ -88,7 +91,11 @@ func (c *Client) Rewrite(
 			return Diagnostics{}, ErrLosslessNoRewriteArgs
 		}
 		var err error
-		args, err = BuildArgs(opts.Profile, inputPath, outputPath)
+		if opts.Resolution != 0 {
+			args, err = BuildArgsWithResolution(opts.Profile, inputPath, outputPath, opts.Resolution)
+		} else {
+			args, err = BuildArgs(opts.Profile, inputPath, outputPath)
+		}
 		if err != nil {
 			return Diagnostics{}, err
 		}

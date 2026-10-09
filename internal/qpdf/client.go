@@ -229,3 +229,22 @@ func (c *Client) WriteLossless(ctx context.Context, inputPath, outputPath string
 
 	return nil
 }
+
+// WriteImages recompresses eligible images, including existing JPEGs, with loss.
+func (c *Client) WriteImages(ctx context.Context, inputPath, outputPath string, quality int) error {
+	if quality < 0 || quality > 100 {
+		return fmt.Errorf("invalid JPEG quality: %d", quality)
+	}
+	args := []string{inputPath, "--optimize-images", fmt.Sprintf("--jpeg-quality=%d", quality),
+		"--object-streams=generate", "--recompress-flate", "--compression-level=9", outputPath}
+	res, err := c.runner.RunWithOptions(ctx, worker.CommandOptions{
+		MaxStdoutBytes: worker.DefaultDiagnosticLimit, MaxStderrBytes: worker.DefaultDiagnosticLimit,
+	}, c.binaryPath, args...)
+	if res != nil && (res.ExitCode != 0 || res.Truncated) {
+		return fmt.Errorf("%w: image optimization exit %d", ErrCheckFailed, res.ExitCode)
+	}
+	if err != nil {
+		return fmt.Errorf("qpdf image optimization failed: %w", err)
+	}
+	return nil
+}

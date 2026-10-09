@@ -34,7 +34,18 @@ func main() {
 			qpdf.NewClient(req.QPDFPath, runner),
 			ghostscript.NewClient(req.GSPath, runner),
 		)
+		auto := compression.DefaultAutoSettings()
+		if req.AutoJPEGQuality != nil {
+			auto.JPEGQuality = *req.AutoJPEGQuality
+		}
+		if req.AutoMinSavedPercent != nil {
+			auto.MinSavedPercent = *req.AutoMinSavedPercent
+		}
+		if req.AutoDPI != nil {
+			auto.DPI = *req.AutoDPI
+		}
 		result, err := svc.Compress(ctx, compression.CompressRequest{
+			Auto:              &auto,
 			InputPath:         req.InputPath,
 			WorkDir:           req.WorkDir,
 			Profile:           compression.Profile(req.Profile),

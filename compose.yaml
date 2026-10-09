@@ -16,6 +16,9 @@ services:
     ports:
       - "${BIND_IP:-127.0.0.1}:${PORT:-8080}:8080"
     environment:
+      AUTO_JPEG_QUALITY: "${AUTO_JPEG_QUALITY:-70}"
+      AUTO_MIN_SAVED_PERCENT: "${AUTO_MIN_SAVED_PERCENT:-20}"
+      AUTO_DPI: "${AUTO_DPI:-200}"
       ENABLE_LOSSY: "${ENABLE_LOSSY:-true}"
       PROCESSING_TIMEOUT: "${PROCESSING_TIMEOUT:-600s}"
       WRITE_TIMEOUT: "${WRITE_TIMEOUT:-660s}"

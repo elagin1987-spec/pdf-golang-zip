@@ -31,13 +31,16 @@ type ProcessWorker struct{ Config config.Config }
 func (p ProcessWorker) Process(ctx context.Context, job *storage.Job, profile compression.Profile) (*compression.Result, error) {
 	c := p.Config
 	req := worker.Request{
-		InputPath:         filepath.Join(job.Dir, "input.pdf"),
-		WorkDir:           job.Dir,
-		Profile:           string(profile),
-		QPDFPath:          c.QPDFPath,
-		GSPath:            c.GSPath,
-		MaxPages:          c.MaxPages,
-		AllowSpecialTypes: c.AllowSpecialTypes,
+		AutoJPEGQuality:     &c.Auto.JPEGQuality,
+		AutoMinSavedPercent: &c.Auto.MinSavedPercent,
+		AutoDPI:             &c.Auto.DPI,
+		InputPath:           filepath.Join(job.Dir, "input.pdf"),
+		WorkDir:             job.Dir,
+		Profile:             string(profile),
+		QPDFPath:            c.QPDFPath,
+		GSPath:              c.GSPath,
+		MaxPages:            c.MaxPages,
+		AllowSpecialTypes:   c.AllowSpecialTypes,
 	}
 	payload, _ := json.Marshal(req)
 	jobCtx, cancel := context.WithCancelCause(ctx)

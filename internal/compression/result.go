@@ -18,7 +18,7 @@ const (
 	// EngineOriginal indicates the original unaltered document was selected.
 	EngineOriginal OptimizationEngine = "original"
 
-	// EngineQPDF indicates qpdf lossless structural optimization was selected.
+	// EngineQPDF indicates qpdf structural or auto JPEG optimization was selected.
 	EngineQPDF OptimizationEngine = "qpdf"
 
 	// EngineGhostscript indicates Ghostscript lossy rewrite was selected.
@@ -27,14 +27,14 @@ const (
 
 // Warning codes emitted during document eligibility assessment and candidate validation.
 const (
-	WarningComplexColorPreserved        = "complex_color_preserved"
-	WarningUnsupportedImageFilter       = "unsupported_image_filter"
-	WarningImagePixelLimit              = "image_pixel_limit"
-	WarningGhostscriptFailed            = "ghostscript_failed"
-	WarningGhostscriptWarning           = "ghostscript_warning"
-	WarningGhostscriptTextChanged       = "ghostscript_text_changed"
-	WarningGhostscriptFeaturesChanged   = "ghostscript_features_changed"
-	WarningTextValidationUnavailable    = "text_validation_unavailable"
+	WarningComplexColorPreserved      = "complex_color_preserved"
+	WarningUnsupportedImageFilter     = "unsupported_image_filter"
+	WarningImagePixelLimit            = "image_pixel_limit"
+	WarningGhostscriptFailed          = "ghostscript_failed"
+	WarningGhostscriptWarning         = "ghostscript_warning"
+	WarningGhostscriptTextChanged     = "ghostscript_text_changed"
+	WarningGhostscriptFeaturesChanged = "ghostscript_features_changed"
+	WarningTextValidationUnavailable  = "text_validation_unavailable"
 )
 
 // Result holds the final compression outcome and metadata.

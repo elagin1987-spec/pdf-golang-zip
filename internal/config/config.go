@@ -6,10 +6,12 @@ import (
 	"strconv"
 	"time"
 
+	"pdf-golang-zip/internal/compression"
 	"pdf-golang-zip/internal/qpdf"
 )
 
 type Config struct {
+	Auto                                                            compression.AutoSettings
 	ListenAddr, TempDir, WorkerPath, QPDFPath, GSPath               string
 	MaxFileBytes, MaxRequestBytes, MaxJobBytes                      int64
 	MaxWorkers, MaxPages                                            int
@@ -19,6 +21,7 @@ type Config struct {
 
 func Default() Config {
 	return Config{
+		Auto:              compression.DefaultAutoSettings(),
 		ListenAddr:        ":8080",
 		TempDir:           "/work/jobs",
 		WorkerPath:        "/usr/local/bin/pdfworker",
@@ -92,6 +95,18 @@ func Load() (Config, error) {
 			}
 			*p = d
 		}
+	}
+	for key, target := range map[string]*int{"AUTO_JPEG_QUALITY": &c.Auto.JPEGQuality, "AUTO_MIN_SAVED_PERCENT": &c.Auto.MinSavedPercent, "AUTO_DPI": &c.Auto.DPI} {
+		if value, ok := os.LookupEnv(key); ok {
+			n, err := strconv.Atoi(value)
+			if err != nil {
+				return c, fmt.Errorf("invalid %s", key)
+			}
+			*target = n
+		}
+	}
+	if err := c.Auto.Validate(); err != nil {
+		return c, err
 	}
 	if v, ok := os.LookupEnv("ENABLE_LOSSY"); ok {
 		b, e := strconv.ParseBool(v)

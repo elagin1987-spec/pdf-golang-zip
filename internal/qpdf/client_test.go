@@ -312,3 +312,19 @@ func TestClientWriteLossless(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestWriteImagesWarningsAndQuality(t *testing.T) {
+	runner := &fakeRunner{runFunc: func(_ context.Context, _ worker.CommandOptions, _ string, args ...string) (*worker.Result, error) {
+		if args[0] != "input.pdf" || args[2] != "--jpeg-quality=70" {
+			t.Fatal(args)
+		}
+		return &worker.Result{ExitCode: 3}, errors.New("warning")
+	}}
+	c := NewClient("qpdf", runner)
+	if err := c.WriteImages(context.Background(), "input.pdf", "out.pdf", 70); !errors.Is(err, ErrCheckFailed) {
+		t.Fatal(err)
+	}
+	if err := c.WriteImages(context.Background(), "input.pdf", "out.pdf", 101); err == nil {
+		t.Fatal("invalid quality accepted")
+	}
+}

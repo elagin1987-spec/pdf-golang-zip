@@ -55,6 +55,7 @@ original з `special_features_changed`. Tool/limit errors залишаються
 
 - `POST /v1/compress`: multipart, рівно одне поле `file`, необов'язкове `profile`.
   Порядок довільний; повтори/невідомі поля/порожній файл відхиляються.
+- `auto`: qpdf JPEG, потім Ghostscript за недостатньої економії (див. нижче).
 - `balanced` (default): 300 dpi; `compact`: 150 dpi; `lossless`: тільки qpdf.
 - Успіх `200 application/pdf`, filename `compressed.pdf`, `Cache-Control: no-store`.
   `X-Compression-Status`: compressed/unchanged; `X-Optimization-Engine`: original/qpdf/ghostscript.
@@ -89,7 +90,7 @@ original з `special_features_changed`. Tool/limit errors залишаються
 | PROCESSING_TIMEOUT | 120s | від завершення upload, спільний для pipeline |
 | READ_HEADER_TIMEOUT / READ_TIMEOUT / WRITE_TIMEOUT | 10s / 60s / 180s | write deadline поновлюється після upload |
 | ALLOW_SPECIAL_TYPES | true | special structures use qpdf only; false keeps strict refusals |
-| ENABLE_LOSSY | true | false відключає balanced/compact |
+| ENABLE_LOSSY | true | false відключає auto/balanced/compact |
 
 Фіксовані analysis caps: 100000 objects, depth 32, image 40 MP, JSON 64 MiB,
 XMP 4 MiB, extracted text 32 MiB, multipart text 1024 bytes.
@@ -124,3 +125,39 @@ Production jobs і /tmp у Compose мають `noexec`. Реальні e2e пр�
 
 [Notices](THIRD_PARTY_NOTICES.md), [stage tracker](docs/implementation-plans/pdf-compression-stages/README.md).
 Runtime містить ліцензії, source archives, fonts/resources та checksums tools.
+
+## Автоматичний профіль
+
+Передайте `profile=auto` до `POST /v1/compress`. Чинний default `balanced`
+та профілі `compact`/`lossless` залишаються без змін.
+
+Auto створює перевірену lossless-копію, потім пробує qpdf
+`--optimize-images --jpeg-quality=70`. Якщо найменший перевірений qpdf-результат
+економить щонайменше 20% від оригіналу, Ghostscript пропускається. Інакше GS
+працює з оригіналом на 200 DPI, і вибирається найменший валідний результат
+серед усіх кандидатів та оригіналу. Це евристика швидкості, не пошук
+глобально найменшого PDF. Кількість картинок не визначає вибір інструмента.
+
+Налаштування сервера/Compose:
+
+| Змінна | Default | Допустимі значення |
+|---|---|---|
+| AUTO_JPEG_QUALITY | 70 | 0–100 |
+| AUTO_MIN_SAVED_PERCENT | 20 | 0–100, ціле число |
+| AUTO_DPI | 200 | 150 або 200 |
+
+DPI стосується кольорових і сірих зображень; монохромні не зменшуються.
+200 DPI використовує параметри якості balanced, 150 DPI — compact.
+Downsampling починається, якщо фактичний DPI зображення перевищує цільовий
+у 1.1 раза; менші зображення не збільшуються.
+Special/lossless-only та зображення з непридатними кольорами/фільтрами або
+перевищенням ліміту пікселів зберігають чинний lossless fallback. Вхідні stream
+warnings повертають exact original після успішного аналізу та policy/size checks. `ENABLE_LOSSY=false` відхиляє `auto`.
+Помилка/попередження qpdf JPEG або невдала перевірка відкидає тільки JPEG-кандидат;
+невдалий GS відкидається за чинними правилами. Timeout/cancel не маскуються.
+Структурна/текстова перевірка не гарантує читабельність тексту всередині сканів:
+для нового набору документів потрібен візуальний контроль.
+
+```sh
+curl -F 'file=@document.pdf' -F 'profile=auto' http://127.0.0.1:8080/v1/compress -o compressed.pdf
+```

@@ -387,3 +387,38 @@ and decoded embedded hashes. Nine sampled input/output page PNG pairs are byte
 identical. Warning-bearing source/output SHA-256 matches exactly; no claim of
 repairing its streams. Final API job directory is empty. Full per-file evidence:
 results/courses-2026-10-09-final/{results.json,verification/verification.json}.
+
+## Auto profile — 2026-10-09
+
+Before unit execution reviewed new auto tests and their fakeRunner/setupServiceTestDoc
+helpers, qpdf/GS clients, profile/settings/config/IPC paths, HTTP request helpers,
+worker process tests, and ran scripts/check-test-dependencies.sh inventory.
+Go module contains only the standard library; no DB drivers, SQL/Redis clients,
+TestMain/init hooks or migrations exist in cmd/internal dependency closure.
+Compression/qpdf/GS tests use fake runners; writes are confined to t.TempDir.
+HTTP tests use in-memory httptest requests, fake processors/readiness and temporary
+shell tool stubs. Worker lifecycle tests run only local echo/sh/sleep/pgrep.
+The test container has no network, no DB/service mounts and a read-only source mount;
+cache and test files are in its own /tmp. Real PDF probes are separate integration
+checks with read-only document inputs and outputs under results/auto-20261009.
+
+Before rerun reviewed auto test fixture corrections and the new HTTP auto gate test:
+fake processor plus in-memory request, same t.TempDir-only writes; no new imports
+or external dependencies. First run passed other packages; two auto mock expectations
+needed correction (lossless candidate size and non-empty special form fixture).
+
+Before auto API integration run reviewed tests/e2e/auto_test.go and startAPI/post/
+wait/jobsCount/minimalPDF helpers. They start the new local server/worker, read
+synthetic fixtures and write only temporary job/output/log files. HTTP uses container
+loopback exclusively; qpdf/GS run locally. No DB/network-service dependency,
+credentials or migration path is involved. Container networking remains disabled.
+
+Before final focused API rerun reviewed the added forced-200-DPI case and engine
+assertions. Only the same local fixture/API helpers are used; no dependency changes.
+Unit suite passed all internal packages and cmd/pdfworker; first API run passed
+existing profiles, default auto, 150-DPI fallback, lossy-disabled and special forms.
+
+Final API rerun passed default auto and forced comparisons at both 200/150 DPI,
+including the expected engine choices, disabled lossy mode and special form fallback.
+Real-document integration results and the exact Elastic 64-MiB JSON limit are saved
+under results/auto-20261009/verification.md and report.json.

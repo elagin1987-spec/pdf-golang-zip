@@ -133,6 +133,26 @@ func BuildArgs(profile ProfileName, inputPath, outputPath string) ([]string, err
 		return nil, err
 	}
 
+	return buildArgs(settings, inputPath, outputPath), nil
+}
+
+// BuildArgsWithResolution uses trusted profiles with an explicit auto DPI target.
+func BuildArgsWithResolution(profile ProfileName, inputPath, outputPath string, dpi int) ([]string, error) {
+	if dpi != 150 && dpi != 200 {
+		return nil, fmt.Errorf("invalid auto DPI: %d", dpi)
+	}
+	settings, err := GetProfileSettings(profile)
+	if err != nil {
+		return nil, err
+	}
+	if dpi == 150 {
+		settings = CompactSettings
+	}
+	settings.ColorResolution, settings.GrayResolution = dpi, dpi
+	return buildArgs(settings, inputPath, outputPath), nil
+}
+
+func buildArgs(settings ProfileSettings, inputPath, outputPath string) []string {
 	distiller_ps := BuildDistillerSettings(settings)
 
 	return []string{
@@ -171,5 +191,5 @@ func BuildArgs(profile ProfileName, inputPath, outputPath string) ([]string, err
 		distiller_ps,
 		"-f",
 		inputPath,
-	}, nil
+	}
 }
