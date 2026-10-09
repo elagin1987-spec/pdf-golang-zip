@@ -2,6 +2,7 @@ package qpdf
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -141,4 +142,21 @@ func TestParseJSONValidationLimits(t *testing.T) {
 			t.Fatalf("expected error for exceeding page count limit")
 		}
 	})
+}
+
+func TestThousandPageBoundary(t *testing.T) {
+	for _, count := range []int{552, 1000, 1001} {
+		pages := make([]PageInfo, count)
+		data, err := json.Marshal(JSONOutput{Version: 2, Pages: pages})
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = ParseJSON(data)
+		if count <= 1000 && err != nil {
+			t.Fatalf("%d pages refused: %v", count, err)
+		}
+		if count > 1000 && !errors.Is(err, ErrDocumentLimit) {
+			t.Fatalf("%d pages accepted: %v", count, err)
+		}
+	}
 }

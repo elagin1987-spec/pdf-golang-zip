@@ -11,6 +11,10 @@ import (
 var (
 	// ErrCheckFailed indicates that qpdf --check reported errors or warnings (exit codes 2 or 3).
 	ErrCheckFailed = errors.New("qpdf check reported errors or warnings")
+	// ErrCheckWarning indicates that qpdf --check reported recoverable warnings (exit code 3).
+	ErrCheckWarning = errors.New("qpdf check reported recoverable warnings")
+	// ErrCheckFatal indicates that qpdf --check reported fatal errors (exit code 2).
+	ErrCheckFatal = errors.New("qpdf check reported fatal errors")
 )
 
 // Client provides bounded operations against the qpdf CLI.
@@ -64,7 +68,9 @@ func (c *Client) IsEncrypted(ctx context.Context, path string) (bool, error) {
 }
 
 // Check validates PDF file integrity using qpdf --check.
-// Exit code 0 indicates success. Exit codes 2 or 3 indicate refusal/errors.
+// Exit code 0 indicates success.
+// Exit code 3 indicates recoverable warnings.
+// Exit code 2 indicates fatal errors.
 func (c *Client) Check(ctx context.Context, path string) error {
 	opts := worker.CommandOptions{
 		MaxStdoutBytes: worker.DefaultDiagnosticLimit,
@@ -73,15 +79,23 @@ func (c *Client) Check(ctx context.Context, path string) error {
 
 	res, err := c.runner.RunWithOptions(ctx, opts, c.binaryPath, "--check", path)
 	if err != nil {
-		if res != nil && (res.ExitCode == 2 || res.ExitCode == 3) {
-			return fmt.Errorf("%w (exit %d): %s", ErrCheckFailed, res.ExitCode, string(res.Stderr))
+		if res != nil {
+			if res.ExitCode == 3 {
+				return fmt.Errorf("%w: %w (exit 3): %s", ErrCheckFailed, ErrCheckWarning, string(res.Stderr))
+			}
+			if res.ExitCode == 2 {
+				return fmt.Errorf("%w: %w (exit 2): %s", ErrCheckFailed, ErrCheckFatal, string(res.Stderr))
+			}
 		}
 		return fmt.Errorf("qpdf check failed on %s: %w", path, err)
 	}
 
 	if res != nil && res.ExitCode != 0 {
-		if res.ExitCode == 2 || res.ExitCode == 3 {
-			return fmt.Errorf("%w (exit %d)", ErrCheckFailed, res.ExitCode)
+		if res.ExitCode == 3 {
+			return fmt.Errorf("%w: %w (exit 3)", ErrCheckFailed, ErrCheckWarning)
+		}
+		if res.ExitCode == 2 {
+			return fmt.Errorf("%w: %w (exit 2)", ErrCheckFailed, ErrCheckFatal)
 		}
 		return fmt.Errorf("qpdf check process failed (exit %d)", res.ExitCode)
 	}
@@ -105,6 +119,12 @@ func (c *Client) AnalyzeRaw(ctx context.Context, path string) ([]byte, *JSONOutp
 		path,
 	)
 	if err != nil {
+		if res != nil && res.ExitCode == 3 && len(res.Stdout) > 0 && !res.Truncated {
+			parsed, parse_err := ParseJSON(res.Stdout)
+			if parse_err == nil {
+				return res.Stdout, parsed, nil
+			}
+		}
 		if res != nil && (res.ExitCode == 2 || res.ExitCode == 3) {
 			return nil, nil, fmt.Errorf("%w: qpdf analyze exit %d", ErrCheckFailed, res.ExitCode)
 		}

@@ -12,13 +12,14 @@ import (
 // DocumentAnalysis represents the complete analysis, inventory, policy check,
 // eligibility, and semantic snapshot of a PDF document.
 type DocumentAnalysis struct {
-	JSONOutput   *qpdf.JSONOutput   `json:"-"`
-	RawJSON      []byte             `json:"-"`
-	XMPData      []byte             `json:"-"`
-	PolicyResult *PolicyResult      `json:"policy_result"`
-	Inventory    *DocumentInventory `json:"inventory"`
-	Eligibility  *GSEligibility     `json:"eligibility"`
-	Snapshot     *DocumentSnapshot  `json:"snapshot"`
+	JSONOutput       *qpdf.JSONOutput   `json:"-"`
+	RawJSON          []byte             `json:"-"`
+	XMPData          []byte             `json:"-"`
+	PolicyResult     *PolicyResult      `json:"policy_result"`
+	Inventory        *DocumentInventory `json:"inventory"`
+	Eligibility      *GSEligibility     `json:"eligibility"`
+	PreservationHash [32]byte           `json:"-"`
+	Snapshot         *DocumentSnapshot  `json:"snapshot"`
 }
 
 // IsAllowed returns true if the document satisfies the strict MVP policy.
@@ -31,7 +32,7 @@ func (a *DocumentAnalysis) IsAllowed() bool {
 
 // IsEligibleForGS returns true if the document is allowed by policy and eligible for Ghostscript rewrite.
 func (a *DocumentAnalysis) IsEligibleForGS() bool {
-	if !a.IsAllowed() {
+	if !a.IsAllowed() || a.PolicyResult.LosslessOnly {
 		return false
 	}
 	if a.Eligibility == nil {
@@ -40,16 +41,33 @@ func (a *DocumentAnalysis) IsEligibleForGS() bool {
 	return a.Eligibility.Eligible
 }
 
-// Warnings returns the list of eligibility warnings.
+// Warnings returns the list of eligibility and policy warnings.
 func (a *DocumentAnalysis) Warnings() []string {
-	if a == nil || a.Eligibility == nil {
+	if a == nil {
 		return nil
 	}
-	return a.Eligibility.Warnings
+	var res []string
+	if a.PolicyResult != nil && len(a.PolicyResult.Warnings) > 0 {
+		res = append(res, a.PolicyResult.Warnings...)
+	}
+	if a.Eligibility != nil && len(a.Eligibility.Warnings) > 0 {
+		res = append(res, a.Eligibility.Warnings...)
+	}
+	return res
 }
 
-// AnalyzeDocument performs the full document inspection pipeline using qpdf.
+// AnalyzeDocument performs the full document inspection pipeline using qpdf with default options.
 func AnalyzeDocument(ctx context.Context, client *qpdf.Client, filePath string) (*DocumentAnalysis, error) {
+	return AnalyzeDocumentWithOptions(ctx, client, filePath, PolicyOptions{})
+}
+
+// AnalyzeDocumentWithOptions performs the full document inspection pipeline using qpdf with specified policy options.
+func AnalyzeDocumentWithOptions(
+	ctx context.Context,
+	client *qpdf.Client,
+	filePath string,
+	opts PolicyOptions,
+) (*DocumentAnalysis, error) {
 	if client == nil {
 		return nil, fmt.Errorf("qpdf client is nil")
 	}
@@ -108,13 +126,21 @@ func AnalyzeDocument(ctx context.Context, client *qpdf.Client, filePath string) 
 	}
 
 	// 4. Policy validation
-	policy_res := CheckPolicy(parsed, xmp_data)
+	policy_res := CheckPolicyWithOptions(parsed, xmp_data, opts)
 
 	// 5. Inventory extraction
 	inv := ExtractInventory(parsed)
 
 	// 6. Ghostscript eligibility assessment
 	eligibility := AssessGSEligibility(inv)
+
+	var preservation_hash [32]byte
+	if policy_res.Allowed && policy_res.LosslessOnly {
+		preservation_hash, err = PreservationFingerprint(ctx, client, filePath, parsed)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// 7. Semantic snapshot extraction
 	snap, snap_err := BuildSnapshot(parsed)
@@ -123,12 +149,13 @@ func AnalyzeDocument(ctx context.Context, client *qpdf.Client, filePath string) 
 	}
 
 	return &DocumentAnalysis{
-		JSONOutput:   parsed,
-		RawJSON:      raw_json,
-		XMPData:      xmp_data,
-		PolicyResult: policy_res,
-		Inventory:    inv,
-		Eligibility:  eligibility,
-		Snapshot:     snap,
+		JSONOutput:       parsed,
+		RawJSON:          raw_json,
+		XMPData:          xmp_data,
+		PolicyResult:     policy_res,
+		Inventory:        inv,
+		Eligibility:      eligibility,
+		Snapshot:         snap,
+		PreservationHash: preservation_hash,
 	}, nil
 }

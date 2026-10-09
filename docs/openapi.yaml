@@ -20,7 +20,7 @@ paths:
           $ref: '#/components/responses/Error'
   /v1/compress:
     post:
-      description: Streaming multipart; exactly one file, optional profile in any order. Duplicate and unknown fields rejected. File <=50 MiB, body <=51 MiB, text field <=1024 bytes. Processing timeout starts after upload. Disconnect cancels job. Binary starts after validation.
+      description: Streaming multipart; exactly one file, optional profile in any order. Duplicate and unknown fields rejected. File <=300 MiB, body <=310 MiB, <=1000 pages, text field <=1024 bytes. Processing timeout starts after upload. Disconnect cancels job. Binary starts after validation. With ALLOW_SPECIAL_TYPES=true, attachments/tagged/forms/layers/JavaScript/multimedia use lossless qpdf only, preserving their structure. Signed/encrypted/PDF-A/Launch documents remain refused. Compose processing/write timeouts are 600s/660s.
       requestBody:
         required: true
         content:

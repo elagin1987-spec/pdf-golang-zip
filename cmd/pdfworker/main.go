@@ -30,8 +30,17 @@ func main() {
 		response.Status = 500
 	} else {
 		runner := worker.NewLinuxRunner(false) // gs/qpdf inherit the pdfworker job group.
-		svc := compression.NewService(qpdf.NewClient(req.QPDFPath, runner), ghostscript.NewClient(req.GSPath, runner))
-		result, err := svc.Compress(ctx, compression.CompressRequest{InputPath: req.InputPath, WorkDir: req.WorkDir, Profile: compression.Profile(req.Profile), MaxPages: req.MaxPages})
+		svc := compression.NewService(
+			qpdf.NewClient(req.QPDFPath, runner),
+			ghostscript.NewClient(req.GSPath, runner),
+		)
+		result, err := svc.Compress(ctx, compression.CompressRequest{
+			InputPath:         req.InputPath,
+			WorkDir:           req.WorkDir,
+			Profile:           compression.Profile(req.Profile),
+			MaxPages:          req.MaxPages,
+			AllowSpecialTypes: req.AllowSpecialTypes,
+		})
 		if err == nil {
 			response.Result, _ = json.Marshal(result)
 		} else {

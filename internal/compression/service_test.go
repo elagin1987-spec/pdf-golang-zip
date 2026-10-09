@@ -598,3 +598,65 @@ func TestRequiredLosslessFailureIsNotSuccess(t *testing.T) {
 		})
 	}
 }
+
+func TestServicePreflightWarningAllowed(t *testing.T) {
+	input_path, work_dir := setupServiceTestDoc(t, 100000, nil)
+
+	qpdf_runner := &fakeRunner{
+		handler: func(
+			ctx context.Context,
+			opts worker.CommandOptions,
+			tool string,
+			args ...string,
+		) (*worker.Result, error) {
+			if len(args) > 0 && args[0] == "--is-encrypted" {
+				return &worker.Result{ExitCode: 2}, nil
+			}
+			if len(args) > 0 && args[0] == "--check" && args[1] == input_path {
+				return &worker.Result{
+					ExitCode: 3,
+					Stderr:   []byte("stream inflate warning"),
+				}, fmt.Errorf("exit status 3")
+			}
+			for _, a := range args {
+				if strings.HasPrefix(a, "--json=2") {
+					return &worker.Result{ExitCode: 0, Stdout: []byte(sampleValidJSON)}, nil
+				}
+			}
+			for i, a := range args {
+				if a == "--object-streams=generate" && i+2 < len(args) {
+					out_file := args[i+2]
+					_ = os.WriteFile(out_file, make([]byte, 80000), 0600)
+					return &worker.Result{ExitCode: 0}, nil
+				}
+			}
+			return &worker.Result{ExitCode: 0}, nil
+		},
+	}
+	qpdf_client := qpdf.NewClient("qpdf", qpdf_runner)
+	svc := NewService(qpdf_client, ghostscript.NewClient("gs", &fakeRunner{}))
+
+	res, err := svc.Compress(context.Background(), CompressRequest{
+		InputPath:         input_path,
+		WorkDir:           work_dir,
+		Profile:           ProfileLossless,
+		AllowSpecialTypes: true,
+	})
+	if err != nil {
+		t.Fatalf("expected Compress to succeed with exit 3 warning, got err: %v", err)
+	}
+	if res == nil {
+		t.Fatalf("expected non-nil result")
+	}
+
+	found_warning := false
+	for _, w := range res.Warnings {
+		if w == "source_had_stream_warnings" {
+			found_warning = true
+			break
+		}
+	}
+	if !found_warning {
+		t.Fatalf("expected 'source_had_stream_warnings' in warnings, got: %v", res.Warnings)
+	}
+}

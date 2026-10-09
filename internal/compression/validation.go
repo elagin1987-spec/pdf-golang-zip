@@ -116,6 +116,19 @@ func ValidateCandidate(
 		}, nil
 	}
 
+	if orig_analysis.PolicyResult != nil && orig_analysis.PolicyResult.LosslessOnly {
+		if engine != EngineQPDF {
+			return &ValidationResult{Warning: "special_features_changed"}, nil
+		}
+		fingerprint, err := pdf.PreservationFingerprint(ctx, qpdf_client, cand_path, cand_json)
+		if err != nil {
+			return nil, err
+		}
+		if fingerprint != orig_analysis.PreservationHash {
+			return &ValidationResult{Warning: "special_features_changed"}, nil
+		}
+	}
+
 	// 4. Runtime text validation for Ghostscript candidates
 	if engine == EngineGhostscript {
 		cand_text_path := filepath.Join(work_dir, filepath.Base(cand_path)+"-extracted.txt")

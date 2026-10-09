@@ -43,7 +43,7 @@ func startAPI(t *testing.T, extra ...string) *apiProcess {
 		t.Fatal(e)
 	}
 	cmd := exec.Command(bin)
-	cmd.Env = append(os.Environ(), "LISTEN_ADDR="+addr, "TEMP_DIR="+jobs, "WORKER_PATH=/usr/local/bin/pdfworker")
+	cmd.Env = append(os.Environ(), "LISTEN_ADDR="+addr, "TEMP_DIR="+jobs, "WORKER_PATH=/usr/local/bin/pdfworker", "ALLOW_SPECIAL_TYPES=false")
 	cmd.Env = append(cmd.Env, extra...)
 	cmd.Stdout = logfile
 	cmd.Stderr = logfile

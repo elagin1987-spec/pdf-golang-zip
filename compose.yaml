@@ -9,7 +9,7 @@ services:
     user: "65532:65532"
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:${NO_NEW_PRIVILEGES:-true}"]
-    mem_limit: 2g
+    mem_limit: 4g
     cpu_period: 100000
     cpu_quota: 200000
     pids_limit: 128
@@ -17,9 +17,16 @@ services:
       - "${BIND_IP:-127.0.0.1}:${PORT:-8080}:8080"
     environment:
       ENABLE_LOSSY: "${ENABLE_LOSSY:-true}"
-      PROCESSING_TIMEOUT: "${PROCESSING_TIMEOUT:-120s}"
+      PROCESSING_TIMEOUT: "${PROCESSING_TIMEOUT:-600s}"
+      WRITE_TIMEOUT: "${WRITE_TIMEOUT:-660s}"
+      READ_TIMEOUT: "${READ_TIMEOUT:-120s}"
+      MAX_FILE_BYTES: "${MAX_FILE_BYTES:-314572800}"
+      MAX_REQUEST_BYTES: "${MAX_REQUEST_BYTES:-325058560}"
+      MAX_JOB_BYTES: "${MAX_JOB_BYTES:-2147483648}"
+      MAX_PAGES: "${MAX_PAGES:-1000}"
       MAX_WORKERS: "${MAX_WORKERS:-2}"
+      ALLOW_SPECIAL_TYPES: "${ALLOW_SPECIAL_TYPES:-true}"
     tmpfs:
-      - /tmp:rw,noexec,nosuid,size=256m,mode=1777
-      - /work/jobs:rw,noexec,nosuid,size=1200m,mode=1777
+      - /tmp:rw,noexec,nosuid,size=512m,mode=1777
+      - /work/jobs:rw,noexec,nosuid,size=3500m,mode=1777
     stop_grace_period: 10s

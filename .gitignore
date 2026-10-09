@@ -1,3 +1,5 @@
 /artifacts/
 .env
 .env.local
+
+/results/

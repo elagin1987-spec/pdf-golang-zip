@@ -5,6 +5,27 @@
 Compose слухає 127.0.0.1. Для внутрішньої мережі задайте BIND_IP адресою інтерфейсу.
 Обробка локальна, без БД/Redis/зовнішніх API. Не запускайте міграції.
 
+## Current courses support (2026-10-09)
+
+Current source accepts up to 300 MiB and 1000 pages (the same parser/config cap),
+with MAX_PAGES allowed to be lower. Compose passes 300/310 MiB upload/request,
+2 GiB job, 4 GiB aggregate RAM, 3500 MiB jobs tmpfs and 512 MiB /tmp. Upload /
+processing / write timeout defaults in Compose: 120s / 600s / 660s. The actual
+server variable is PROCESSING_TIMEOUT; JOB_TIMEOUT is ignored.
+
+ALLOW_SPECIAL_TYPES=true admits attachments/tagged/multimedia and the existing
+relaxed forms/layers/JavaScript/annotation cases exclusively via qpdf lossless.
+Special features and decoded embedded payloads are checked; no GS flattening is
+attempted for these inputs. JavaScript remains in the document and is not executed.
+Strict mode continues refusing them. Encrypted/signed/PDF-A/Launch refusal remains.
+A preservation mismatch returns original bytes with special_features_changed;
+mandatory tool failures and limits remain errors. See README for validation caps.
+
+Rebuild the current source and use the resulting image tag/ID explicitly; merely
+changing env on an older image does not add the new policy implementation.
+The stage numbers, caps and strict policy descriptions below describe historical
+acceptance builds and are not the current large-PDF configuration.
+
 ## Готовий пакет і відтворення
 
 Stage 08 is the historical pre-fix package. For current policy/XMP/qpdf fixes,
@@ -109,7 +130,7 @@ per-request guarantee. See quality report and acceptance matrix.
 ## Ресурси, readiness і діагностика
 
 Env/defaults/caps and HTTP headers/errors: [README](../README.md), [OpenAPI](openapi.yaml).
-Only ENABLE_LOSSY, MAX_WORKERS and PROCESSING_TIMEOUT are passed by current Compose;
+Historical Compose passed only ENABLE_LOSSY, MAX_WORKERS and PROCESSING_TIMEOUT;
 other server env settings need an explicit Compose override. BIND_IP/PORT/PDF_IMAGE/
 NO_NEW_PRIVILEGES configure Compose, not server. `ENABLE_LOSSY=false` accepts only
 explicit profile=lossless, requires qpdf but not GS. Do not change pinned tool versions

@@ -329,3 +329,61 @@ F8b result: fresh load 16/16 Pass, dedup 12 calls, exit 0. Peak sampled memory
 935.4MiB, aggregate job disk 502.4MiB, single job 272.7MiB within existing caps.
 QA container list empty after checks; no service left running. Production/source
 hash snapshot still matches accepted build; final changes are report/docs only.
+
+## Courses support — C1 before unit execution, 2026-10-09
+
+Reviewed current go.mod (stdlib and local packages only), all internal/cmd unit
+imports/helpers and interaction inventory in results/courses-2026-10-09/test-*.txt.
+New preservation tests use in-memory JSON, fakeRunner tool responses and t.TempDir;
+no real PDF content, remote services, database drivers, SQL/ORM/Redis, credentials,
+init or TestMain hooks. Production preservation code invokes only the existing
+bounded qpdf Runner. Config reads server limits only. Existing process tests run
+owned local shell stubs; HTTP tests use httptest loopback and fake processors.
+Run all internal/pdfworker race tests in pinned Go, --network none, read-only
+source/root, private exec tmpfs and init; filesystem changes stay under test temp.
+No migrations or database interaction allowed or performed.
+
+C1 found an existing policy bug: successful nested-action scans returned early,
+dropping accumulated warnings. C2 before retry: only restrict that early return
+to actual refusals, retaining the same reviewed stdlib/fakeRunner/temp dependency
+closure as C1; no DB, init hooks or remote calls added. Repeat full race suite.
+
+C2 result: all internal/pdfworker race tests pass, exit 0. Real courses rerun
+revealed qpdf exit-3 inflate warnings in the original second-edition PDF and its
+rewrite, causing lossless generation to fail. C3 before retry: preserve exact
+source after policy/size checks when preflight reports recoverable warnings;
+new test uses fakeRunner and t.TempDir only, with assertions against invoking
+rewrite. Same stdlib/local dependencies; no DB or network calls. Repeat race.
+
+C3 result: full internal/pdfworker race run passes, exit 0. C4 before execution:
+reviewed indirect /EF payload propagation and a string-ending-in-R regression;
+new test still uses only in-memory fakeRunner. Existing e2e harness now explicitly
+selects strict mode for its historical refusal matrix; overrides remain possible.
+No module/import/service/DB additions. Repeat changed-package race tests only.
+R1 real e2e review: existing fixture files, owned child binaries/process groups,
+local HTTP loopback, qpdf/gs and private t.TempDir only; no DB/remote services.
+Run selected runtime API/refusal/quality tests in network-none container, mounting
+current source read-only with pinned local Go and the final runtime binaries.
+
+C4 result: changed PDF/compression packages pass race. R2 before real special
+fixture tests: new test reads only five owned synthetic PDFs, posts to owned
+loopback server, uses qpdf check and private temporary output. Standard library
+imports only; no DB/network endpoint outside loopback, migrations or init hooks.
+Existing strict harness remains default; this test explicitly enables special
+preservation. Run new real test separately after R1; no product changes since C4.
+
+R1 result: selected real API regressions pass, including 96 strict fixture cases,
+24 nested-action cases, ordinary profiles, disabled-lossy and timeout. R2 result:
+all five real relaxed special-structure HTTP cases pass with honest preserved
+warnings and no Ghostscript selection. Final binaries unchanged since C4.
+Real-user verification uses only local qpdf/Poppler, read-only originals and new
+output folders; compare page count, embedded payload hashes, text and sample
+render PNGs. This is actual-file QA, not a unit test or database operation.
+
+Final actual-file result: 4/4 HTTP 200 on the final build; 3 qpdf compressed,
+1 exact-original unchanged with pre-existing inflate warnings. Three compressed
+outputs pass qpdf check, retain page counts, text hashes, special feature counts
+and decoded embedded hashes. Nine sampled input/output page PNG pairs are byte
+identical. Warning-bearing source/output SHA-256 matches exactly; no claim of
+repairing its streams. Final API job directory is empty. Full per-file evidence:
+results/courses-2026-10-09-final/{results.json,verification/verification.json}.

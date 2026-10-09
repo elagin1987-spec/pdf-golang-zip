@@ -28,7 +28,28 @@ Compose типово прив'язує порт до `127.0.0.1`. Для дос�
 
 Папка jobs належить одному екземпляру сервісу; не діліть її між серверами.
 Runtime: непривілейований UID 65532, read-only root, writable tmpfs,
-2 GiB RAM / 2 CPU / 128 PID загалом, init для reaping осиротілих процесів.
+4 GiB RAM / 2 CPU / 128 PID загалом, init для reaping осиротілих процесів.
+
+## Підтримка великих PDF і спеціальних структур
+
+До 300 MiB та 1000 сторінок. `MAX_PAGES` можна зменшити; всі перевірки
+використовують однакову максимальну межу. Із `ALLOW_SPECIAL_TYPES=true`
+вкладення, tagged структура, форми, шари, анотації, JavaScript та multimedia
+зберігаються через qpdf; Ghostscript для таких документів пропускається.
+`balanced`/`compact` у цьому разі означають lossless fallback. Попередження
+`*_preserved` описують збережені елементи; JavaScript не виконується і не видаляється.
+Шифрування, цифрові підписи, PDF/A і Launch actions залишаються відхиленими.
+Strict mode (`ALLOW_SPECIAL_TYPES=false`) залишає попередні відмови.
+
+Lossless-only кандидат перевіряється за reachable catalog graph незалежно від
+номерів об’єктів; змінювати можна stream encoding keys. Decoded embedded bytes
+перевіряються SHA-256 (до 32 MiB на stream, 300 MiB сумарно); traversal caps
+32 levels per direct object та 100000 nodes. Втрата структури повертає exact
+original з `special_features_changed`. Tool/limit errors залишаються помилками.
+Вхідний PDF із recoverable qpdf warnings повертається exact original без
+спроб перезапису, із `source_had_stream_warnings,compression_skipped_source_warnings`.
+Це не відновлення пошкоджених потоків і не підтвердження їх декодування.
+Мінімальний відсоток економії не гарантується.
 
 ## HTTP
 
@@ -60,13 +81,14 @@ Runtime: непривілейований UID 65532, read-only root, writable tm
 | TEMP_DIR | /work/jobs | виділена папка, очищення тільки власних marked pdfjob-* |
 | WORKER_PATH | /usr/local/bin/pdfworker | довірений серверний binary |
 | QPDF_PATH / GS_PATH | qpdf / gs | довірені tools |
-| MAX_FILE_BYTES | 52428800 | до 50 MiB |
-| MAX_REQUEST_BYTES | 53477376 | до 51 MiB; не менше file limit |
-| MAX_JOB_BYTES | 536870912 | до 512 MiB; watcher кожні 20 ms та final check |
+| MAX_FILE_BYTES | 314572800 | до 300 MiB |
+| MAX_REQUEST_BYTES | 325058560 | до 310 MiB; не менше file limit |
+| MAX_JOB_BYTES | 2147483648 | до 2 GiB; watcher кожні 20 ms та final check |
 | MAX_WORKERS | 2 | можна 1 або 2 |
-| MAX_PAGES | 500 | можна зменшити |
+| MAX_PAGES | 1000 | можна зменшити |
 | PROCESSING_TIMEOUT | 120s | від завершення upload, спільний для pipeline |
 | READ_HEADER_TIMEOUT / READ_TIMEOUT / WRITE_TIMEOUT | 10s / 60s / 180s | write deadline поновлюється після upload |
+| ALLOW_SPECIAL_TYPES | true | special structures use qpdf only; false keeps strict refusals |
 | ENABLE_LOSSY | true | false відключає balanced/compact |
 
 Фіксовані analysis caps: 100000 objects, depth 32, image 40 MP, JSON 64 MiB,
@@ -74,6 +96,11 @@ XMP 4 MiB, extracted text 32 MiB, multipart text 1024 bytes.
 Job directories 0700, files 0600; filename від клієнта не використовується як шлях.
 Кожна обробка — окремий worker/process group; timeout, disconnect, shutdown
 скасовують групу TERM → grace → KILL і чекають завершення перед cleanup.
+Compose передає наведені ліміти, `ALLOW_SPECIAL_TYPES`, upload timeout 120s,
+processing timeout 600s і write timeout 660s. Defaults самого binary для
+processing/write лишаються 120s/180s; для великих PDF використовуйте Compose
+або задайте правильні env явно (`PROCESSING_TIMEOUT`, не `JOB_TIMEOUT`).
+
 Watcher допускає короткий overshoot між опитуваннями; сумарний hard storage bound
 задає tmpfs Compose. `GOMEMLIMIT=384MiB` — soft GC limit worker, не окрема memory isolation.
 Логи містять request ID, HTTP status/code, bytes/time/engine/warnings без вмісту PDF.

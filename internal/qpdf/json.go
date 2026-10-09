@@ -15,8 +15,8 @@ var ErrDocumentLimit = errors.New("document limit exceeded")
 var ErrInvalidJSON = errors.New("invalid qpdf json")
 
 const (
-	// MaxDocumentPages is the maximum allowed page count (500).
-	MaxDocumentPages = 500
+	// MaxDocumentPages is the maximum allowed page count (1000).
+	MaxDocumentPages = 1000
 
 	// MaxDocumentObjects is the maximum allowed object count in traversal (100,000).
 	MaxDocumentObjects = 100000

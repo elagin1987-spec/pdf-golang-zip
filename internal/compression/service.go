@@ -36,10 +36,11 @@ func (e *PolicyViolationError) Error() string {
 
 // CompressRequest parameters for compressing a single PDF document.
 type CompressRequest struct {
-	InputPath string
-	WorkDir   string
-	Profile   Profile
-	MaxPages  int
+	InputPath         string
+	WorkDir           string
+	Profile           Profile
+	MaxPages          int
+	AllowSpecialTypes bool
 }
 
 // Service coordinates the PDF compression pipeline and candidate selection.
@@ -86,20 +87,34 @@ func (s *Service) Compress(ctx context.Context, req CompressRequest) (*Result, e
 		return nil, err
 	}
 
+	warnings := make([]string, 0)
+	source_has_warnings := false
+
 	// 1. Mandatory Preflight: qpdf --check on original document
 	check_err := s.qpdf_client.Check(ctx, req.InputPath)
 	if check_err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		if errors.Is(check_err, qpdf.ErrCheckFailed) {
+		if errors.Is(check_err, qpdf.ErrCheckWarning) {
+			warnings = append(warnings, "source_had_stream_warnings")
+			source_has_warnings = true
+		} else if errors.Is(check_err, qpdf.ErrCheckFailed) {
 			return nil, fmt.Errorf("%w: %v", ErrPreflightFailed, check_err)
+		} else {
+			return nil, check_err
 		}
-		return nil, check_err
 	}
 
 	// 2. Structural Analysis, Policy Check, and Inventory
-	orig_analysis, err := pdf.AnalyzeDocument(ctx, s.qpdf_client, req.InputPath)
+	orig_analysis, err := pdf.AnalyzeDocumentWithOptions(
+		ctx,
+		s.qpdf_client,
+		req.InputPath,
+		pdf.PolicyOptions{
+			AllowSpecialTypes: req.AllowSpecialTypes,
+		},
+	)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
@@ -119,8 +134,13 @@ func (s *Service) Compress(ctx context.Context, req CompressRequest) (*Result, e
 	}
 
 	input_images := orig_analysis.Inventory.UniqueReachableImagesCount
-	warnings := make([]string, 0)
 	warnings = append(warnings, orig_analysis.Warnings()...)
+	// A recoverable source warning is not proof of a valid rewrite. Preserve the
+	// exact original rather than accepting a candidate with broken stream data.
+	if source_has_warnings {
+		warnings = append(warnings, "compression_skipped_source_warnings")
+		return unchangedResult(req.InputPath, original_bytes, input_images, warnings), nil
+	}
 
 	candidates := make([]*Candidate, 0)
 
@@ -150,7 +170,9 @@ func (s *Service) Compress(ctx context.Context, req CompressRequest) (*Result, e
 		if val_err != nil {
 			return nil, val_err
 		}
-		if val_res == nil || !val_res.Valid {
+		if val_res != nil && !val_res.Valid && val_res.Warning == "special_features_changed" {
+			warnings = append(warnings, val_res.Warning)
+		} else if val_res == nil || !val_res.Valid {
 			return nil, fmt.Errorf("required lossless validation failed")
 		}
 		if val_err == nil && val_res != nil && val_res.Valid && val_res.Candidate != nil {
@@ -266,17 +288,7 @@ func (s *Service) Compress(ctx context.Context, req CompressRequest) (*Result, e
 
 	// If no candidate is smaller than original, return original unchanged
 	if best_candidate == nil {
-		return &Result{
-			Status:             StatusUnchanged,
-			Engine:             EngineOriginal,
-			OriginalBytes:      original_bytes,
-			OutputBytes:        original_bytes,
-			SavedPercent:       0.0,
-			Warnings:           deduped_warnings,
-			InputImageObjects:  input_images,
-			OutputImageObjects: input_images,
-			OutputPath:         req.InputPath,
-		}, nil
+		return unchangedResult(req.InputPath, original_bytes, input_images, deduped_warnings), nil
 	}
 
 	saved_percent := math.Round((float64(original_bytes-best_candidate.Size)/float64(original_bytes)*100.0)*100) / 100
@@ -292,4 +304,10 @@ func (s *Service) Compress(ctx context.Context, req CompressRequest) (*Result, e
 		OutputImageObjects: best_candidate.ImageObjects,
 		OutputPath:         best_candidate.Path,
 	}, nil
+}
+
+func unchangedResult(path string, size int64, images int, warnings []string) *Result {
+	return &Result{Status: StatusUnchanged, Engine: EngineOriginal, OriginalBytes: size,
+		OutputBytes: size, SavedPercent: 0, Warnings: DeduplicateWarnings(warnings),
+		InputImageObjects: images, OutputImageObjects: images, OutputPath: path}
 }
