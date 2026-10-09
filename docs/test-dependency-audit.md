@@ -422,3 +422,18 @@ Final API rerun passed default auto and forced comparisons at both 200/150 DPI,
 including the expected engine choices, disabled lossy mode and special form fallback.
 Real-document integration results and the exact Elastic 64-MiB JSON limit are saved
 under results/auto-20261009/verification.md and report.json.
+
+## Default auto — 2026-10-09
+
+Before execution reviewed profile parsing, HTTP upload default, new default/explicit
+profile unit cases, and changed auto runtime tests (omitted profile). Dependencies
+remain stdlib/local, with fake processors/runners and t.TempDir for unit tests.
+Inventory script reviewed: no DB driver/client, migration, init or TestMain paths.
+Runtime tests use synthetic fixtures and container loopback only. Network-disabled
+container, no service/DB mounts; test/cache writes stay private. Run internal and
+pdfworker unit checks plus auto API integration using freshly built binaries.
+
+Result: all internal/pdfworker unit tests and real API checks passed. Omitted
+profile uses auto (default JPEG selection and conditional 200/150-DPI fallback);
+explicit balanced/compact/lossless behavior remains covered. Built local runtime
+image pdf-compression:auto-default-20261009; production service not restarted.

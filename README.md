@@ -10,12 +10,82 @@ Stages 01–08 завершено для локального GS-v1 handoff: 96 
 
 ## Запуск
 
+Потрібні Docker із запущеним daemon, Docker Compose v2 та curl.
+Go, qpdf і Ghostscript на хості встановлювати не потрібно.
+
+1. Перейдіть у проєкт і перевірте доступ до Docker:
+
 ```sh
-cp .env.example .env
-docker compose up --build -d
-curl http://127.0.0.1:8080/readyz
-curl --fail-with-body -D headers.txt -o compressed.pdf \
-  -F file=@document.pdf -F profile=balanced http://127.0.0.1:8080/v1/compress
+cd /home/alex/Desktop/pdf-golang-zip
+docker info
+docker compose version
+```
+
+2. Створіть `.env`, якщо його ще немає. Наявний файл не перезаписуйте:
+
+```sh
+if [ ! -f .env ]; then cp .env.example .env; fi
+```
+
+Для типового `auto` потрібен `ENABLE_LOSSY=true`. Налаштування:
+`AUTO_JPEG_QUALITY=70`, `AUTO_MIN_SAVED_PERCENT=20`, `AUTO_DPI=200`.
+
+3. Зберіть поточний код і запустіть контейнер:
+
+```sh
+docker compose up --build -d pdf
+docker compose ps
+```
+
+Перша збірка завантажує залежності та може тривати кілька хвилин.
+`--build` потрібен після зміни коду, щоб не запустити попередню версію.
+
+Для поточного локального тесту вже зібрано образ з типовим auto:
+
+```sh
+PDF_IMAGE=pdf-compression:auto-default-20261009 NO_NEW_PRIVILEGES=false \
+  docker compose up --no-build -d pdf
+```
+
+Цей варіант пропускає збірку. `NO_NEW_PRIVILEGES=false` — локальний обхід
+відомої проблеми snap Docker цього хоста з docker-init; на іншому хості,
+який підтримує захист, не додавайте цю змінну. Після наступних змін коду
+потрібна нова збірка, бо цей тег не оновлюється автоматично.
+
+4. Дочекайтеся відповіді `ready` зі статусом HTTP 200:
+
+```sh
+curl --fail-with-body http://127.0.0.1:8080/readyz
+```
+
+Якщо сервер ще не готовий, перегляньте `docker compose logs --tail=100 pdf`
+і повторіть перевірку після завершення запуску. Якщо змінено `PORT` у `.env`,
+використовуйте цей порт у всіх curl-командах.
+
+5. Надішліть PDF. Без поля `profile` застосовується `auto`:
+
+```sh
+curl --fail-with-body --max-time 660 \
+  -D headers.txt \
+  -o resilient-go-auto.pdf \
+  -F 'file=@/home/alex/Downloads/Telegram Desktop/Resilient_Go_Architecture_(2) (1).pdf' \
+  http://127.0.0.1:8080/v1/compress
+```
+
+Лапки навколо `-F` потрібні через пробіли в шляху. Оригінал не змінюється.
+Результат зберігається у `resilient-go-auto.pdf` у поточній папці;
+`headers.txt` містить `X-Optimization-Engine`, `X-Saved-Percent` та попередження.
+Перевірте успішний HTTP-статус: за помилки файл результату може містити JSON
+з її описом замість PDF.
+
+Для іншого профілю додайте `-F 'profile=lossless'`, `-F 'profile=balanced'`
+або `-F 'profile=compact'` до тієї самої curl-команди. Значення мають бути точними;
+невідомий або явно порожній профіль API відхиляє. За `ENABLE_LOSSY=false`
+потрібно явно передати `profile=lossless`, інакше типовий `auto` буде відхилено.
+
+6. Після тестування зупиніть контейнер:
+
+```sh
 docker compose down
 ```
 
@@ -55,8 +125,8 @@ original з `special_features_changed`. Tool/limit errors залишаються
 
 - `POST /v1/compress`: multipart, рівно одне поле `file`, необов'язкове `profile`.
   Порядок довільний; повтори/невідомі поля/порожній файл відхиляються.
-- `auto`: qpdf JPEG, потім Ghostscript за недостатньої економії (див. нижче).
-- `balanced` (default): 300 dpi; `compact`: 150 dpi; `lossless`: тільки qpdf.
+- `auto` (default): qpdf JPEG, потім Ghostscript за недостатньої економії (див. нижче).
+- `balanced`: 300 dpi; `compact`: 150 dpi; `lossless`: тільки qpdf.
 - Успіх `200 application/pdf`, filename `compressed.pdf`, `Cache-Control: no-store`.
   `X-Compression-Status`: compressed/unchanged; `X-Optimization-Engine`: original/qpdf/ghostscript.
   `X-Original-Bytes`, `X-Output-Bytes`, `X-Saved-Percent` (2 decimal places),
@@ -128,8 +198,8 @@ Runtime містить ліцензії, source archives, fonts/resources та c
 
 ## Автоматичний профіль
 
-Передайте `profile=auto` до `POST /v1/compress`. Чинний default `balanced`
-та профілі `compact`/`lossless` залишаються без змін.
+Якщо `profile` не передано до `POST /v1/compress`, використовується `auto`.
+Можна явно передати `profile=auto` або інший профіль: `balanced`, `compact`, `lossless`.
 
 Auto створює перевірену lossless-копію, потім пробує qpdf
 `--optimize-images --jpeg-quality=70`. Якщо найменший перевірений qpdf-результат
@@ -159,5 +229,5 @@ warnings повертають exact original після успішного ан�
 для нового набору документів потрібен візуальний контроль.
 
 ```sh
-curl -F 'file=@document.pdf' -F 'profile=auto' http://127.0.0.1:8080/v1/compress -o compressed.pdf
+curl -F 'file=@document.pdf' http://127.0.0.1:8080/v1/compress -o compressed.pdf
 ```

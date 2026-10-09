@@ -37,8 +37,8 @@ paths:
                 profile:
                   type: string
                   enum: [auto, balanced, compact, lossless]
-                  description: auto tries JPEG optimization then conditional Ghostscript at configured 150 or 200 DPI; settings are server-controlled.
-                  default: balanced
+                  description: When profile is omitted, auto is used. auto tries JPEG optimization then conditional Ghostscript at configured 150 or 200 DPI; settings are server-controlled.
+                  default: auto
       responses:
         '200':
           description: Valid PDF no larger than original. unchanged preserves exact original bytes; fallback warnings possible.
