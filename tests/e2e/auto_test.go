@@ -26,7 +26,7 @@ func TestRuntimeAutoProfile(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				r := post(t, p, input, "auto")
+				r := post(t, p, input, "")
 				output, err := io.ReadAll(r.Body)
 				_ = r.Body.Close()
 				if err != nil || r.StatusCode != 200 || len(output) > len(input) {
@@ -51,7 +51,7 @@ func TestRuntimeAutoProfile(t *testing.T) {
 		})
 	}
 	p := startAPI(t, "ENABLE_LOSSY=false")
-	r := post(t, p, minimalPDF(false), "auto")
+	r := post(t, p, minimalPDF(false), "")
 	data, _ := io.ReadAll(r.Body)
 	_ = r.Body.Close()
 	if r.StatusCode != 400 || !strings.Contains(string(data), "profile_disabled") {

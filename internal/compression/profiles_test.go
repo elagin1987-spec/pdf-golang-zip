@@ -13,7 +13,7 @@ func TestParseProfile(t *testing.T) {
 		expected Profile
 		err      error
 	}{
-		{input: "", expected: ProfileBalanced, err: nil},
+		{input: "", expected: ProfileAuto, err: nil},
 		{input: "balanced", expected: ProfileBalanced, err: nil},
 		{input: "BALANCED", expected: ProfileBalanced, err: nil},
 		{input: "  compact  ", expected: ProfileCompact, err: nil},

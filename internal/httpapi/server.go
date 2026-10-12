@@ -115,7 +115,7 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request, job *storage.Job
 		return "", &APIError{400, "invalid_multipart"}
 	}
 	seen := map[string]bool{}
-	profile := compression.ProfileBalanced
+	profile := compression.ProfileAuto
 	for {
 		part, err := mr.NextPart()
 		if err == io.EOF {

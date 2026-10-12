@@ -271,3 +271,42 @@ func TestAutoProfileForwardedAndDisabled(t *testing.T) {
 		}
 	}
 }
+
+func TestDefaultAutoAndExplicitProfiles(t *testing.T) {
+	for _, tc := range []struct {
+		profile string
+		want    compression.Profile
+	}{
+		{"", compression.ProfileAuto}, {"balanced", compression.ProfileBalanced}, {"compact", compression.ProfileCompact}, {"lossless", compression.ProfileLossless},
+	} {
+		t.Run(string(tc.want), func(t *testing.T) {
+			called := false
+			s, _ := setup(t, processFunc(func(ctx context.Context, j *storage.Job, p compression.Profile) (*compression.Result, error) {
+				called = true
+				if p != tc.want {
+					t.Fatalf("expected %s, got %s", tc.want, p)
+				}
+				return original(ctx, j, p)
+			}))
+			fields := []field{{"file", "%PDF-1.7 test", true}}
+			if tc.profile != "" {
+				fields = append(fields, field{"profile", tc.profile, false})
+			}
+			w := httptest.NewRecorder()
+			s.Handler().ServeHTTP(w, request(t, fields...))
+			if w.Code != 200 || !called {
+				t.Fatal(w.Code, w.Body)
+			}
+		})
+	}
+	s, _ := setup(t, processFunc(func(context.Context, *storage.Job, compression.Profile) (*compression.Result, error) {
+		t.Fatal("disabled auto invoked")
+		return nil, nil
+	}))
+	s.Config.EnableLossy = false
+	w := httptest.NewRecorder()
+	s.Handler().ServeHTTP(w, request(t, field{"file", "%PDF-1.7 test", true}))
+	if w.Code != 400 || !strings.Contains(w.Body.String(), "profile_disabled") {
+		t.Fatal(w.Code, w.Body)
+	}
+}

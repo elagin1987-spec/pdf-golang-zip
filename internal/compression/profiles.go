@@ -34,13 +34,13 @@ var (
 )
 
 // ParseProfile parses and validates a profile name string.
-// If the input string is empty, ProfileBalanced is returned by default.
+// If the input string is empty, ProfileAuto is returned by default.
 func ParseProfile(raw_name string) (Profile, error) {
 	trimmed := strings.ToLower(strings.TrimSpace(raw_name))
 	switch trimmed {
-	case "", string(ProfileBalanced):
+	case string(ProfileBalanced):
 		return ProfileBalanced, nil
-	case string(ProfileAuto):
+	case "", string(ProfileAuto):
 		return ProfileAuto, nil
 	case string(ProfileCompact):
 		return ProfileCompact, nil
