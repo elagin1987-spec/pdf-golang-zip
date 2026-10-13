@@ -1,5 +1,21 @@
 # Test dependency audit — Stage 01, 2026-10-09
 
+## GitHub preparation — 2026-10-13
+
+Before running tests, reviewed module and test dependency closure, initialization
+hooks, fake runners, configuration, storage cleanup, and process test helpers.
+Scope: `cmd/pdfworker`, `internal/config`, `internal/compression`,
+`internal/ghostscript`, `internal/pdf`, `internal/qpdf`, `internal/storage`,
+and `internal/worker`. Dependencies are project packages and the Go standard
+library only; no database drivers, database calls, migrations, `TestMain`, or
+project `init()` hooks were found. File writes and cleanup use test temporary
+directories. Worker tests execute fixed local echo/shell/sleep commands and
+cancel their own process groups; compression/tool adapters use fake runners.
+
+Go 1.27.2: `go test -count=1` for the eight packages above passed.
+HTTP process tests, integration tests and E2E tests were not run in this scope.
+No database, production service or real input documents were used.
+
 Reviewed before the first real integration probe:
 `cmd/engine-probe/main.go`, `go.mod`, `Dockerfile`, `Makefile`,
 `testdata/pdf/generate.py`, `testdata/pdf/manifest.json`, and
